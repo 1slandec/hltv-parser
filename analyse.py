@@ -43,7 +43,7 @@ def get_percentage_matrix(df: pd.DataFrame):
     
     return percentage_matrix
 
-def linear_graph(df: pd.DataFrame, limit: str):
+def get_linear_graph(df: pd.DataFrame, limit: str):
     df = df.drop(columns='Total')
     
     plt.style.use('seaborn-v0_8-whitegrid')
@@ -53,7 +53,7 @@ def linear_graph(df: pd.DataFrame, limit: str):
     df.plot(ax=ax, marker='o', markersize=4, linewidth=2)
 
     # Оформление осей и заголовка
-    ax.set_title(f'Доля игроков по регионам в рейтинге HLTV (Top-{limit})', fontsize=16, fontweight='bold')
+    ax.set_title(f'Доля игроков по регионам в рейтинге HLTV (Top-{limit}) c 2016 по 2026 год', fontsize=16, fontweight='bold')
     ax.set_xlabel('Год', fontsize=12)
     ax.set_ylabel('Доля игроков (%)', fontsize=12)
 
@@ -69,7 +69,7 @@ def linear_graph(df: pd.DataFrame, limit: str):
     ax.tick_params(axis='x', rotation=45)
 
     plt.tight_layout()
-    plt.savefig('region_share_trend.png', dpi=150, bbox_inches='tight')
+    plt.savefig(f'data/player_share_top_{limit}.png', dpi=150, bbox_inches='tight')
     plt.show()
 
 def get_average_matrix(df: pd.DataFrame):
@@ -116,6 +116,36 @@ def get_pearson(df_total: pd.DataFrame, df_weighted: pd.DataFrame):
 def get_divided_matrix(df_10: pd.DataFrame, df_200: pd.DataFrame):
     return df_10.div(df_200)    
 
+def get_average_by_years(df: pd.DataFrame):
+    new_df = df.mean(axis=0)
+    return new_df
+
+def get_pie_chart(df: pd.DataFrame, limit: int):
+    plt.figure(figsize=(8, 8))
+    plt.pie(df, labels=df.index, autopct='%1.1f%%', startangle=140)
+    plt.title(f'Средняя доля игроков по регионам в топ-{limit}')
+    plt.legend(title="Регионы", loc="center left", bbox_to_anchor=(1, 0, 0.5, 1))
+    plt.tight_layout()
+    plt.savefig(f'data/avg_share_pie_chart_top_{limit}.png')
+    plt.show()
+
+def get_scatter_plot(df: pd.DataFrame, limit: int):
+    pass
+
+def get_bar_chart(df: pd.DataFrame, limit: int):
+    fig, ax = plt.subplots(figsize=(10, 6))
+    bars = ax.bar(df.index, df.values)
+
+    ax.set_title(f'Средний взвешенный рейтинг регионов за 2016-2026 год (Top-{limit})')
+    ax.set_xlabel('Регион')
+    ax.set_ylabel('Взвешенный рейтинг')
+    plt.xticks(rotation=45, ha='right')
+    plt.bar_label(bars, padding=3)
+    plt.tight_layout()
+    plt.savefig(f'data/avg_weighted_ranking_top_{limit}.png')
+    plt.show()
+    
+
 data_file = 'data/parsed-data.csv'
 df = read_data(data_file)
 
@@ -127,11 +157,14 @@ if df is not None:
         total_count = get_total_count_matrix(df_limited)
         weighted_matrix = get_weighted_matrix(df_limited, i)
         pearson = get_pearson(total_count, weighted_matrix)
-        
-        # print()
-        
+        average_by_years_weighted = get_average_by_years(weighted_matrix)
+        # get_pie_chart(average_by_years, i)
+        # print(average_by_years_weighted)
+        # print(weighted_matrix)
+        print(pearson)
+        # get_bar_chart(average_by_years_weighted, i)
         # percentage = get_percentage_matrix(total_count)
-        # linear_graph(percentage, i)
+        # get_linear_graph(percentage, i)
         # mean_ranking = get_average_matrix(df_limited)
         # median_ranking = get_median_matrix(df_limited)
         
@@ -140,4 +173,4 @@ if df is not None:
         # print('----------------------')
 
 divided_matrix = get_divided_matrix(get_total_count_matrix(get_limited_df(df_selected, 10)), get_total_count_matrix(get_limited_df(df_selected, 200)))
-print(divided_matrix)
+# print(divided_matrix)
