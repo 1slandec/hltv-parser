@@ -31,9 +31,6 @@ def get_total_count_matrix(df: pd.DataFrame):
     matrix_df = matrix_df.sort_index()
     matrix_df['Total'] = matrix_df.sum(axis=1)
     
-    # group = df.groupby(['region'])['nickname']
-    # agg_df = group.agg(total_players = 'count')
-
     return matrix_df
 
 def get_percentage_matrix(df: pd.DataFrame):
@@ -47,7 +44,7 @@ def get_linear_graph(df: pd.DataFrame, limit: str):
     df = df.drop(columns='Total')
     
     plt.style.use('seaborn-v0_8-whitegrid')
-    fig, ax = plt.subplots(figsize=(14, 7))
+    _, ax = plt.subplots(figsize=(14, 7))
 
     # Построение графика
     df.plot(ax=ax, marker='o', markersize=4, linewidth=2)
