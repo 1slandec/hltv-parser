@@ -51,14 +51,14 @@ def get_region(country: str) -> str:
         'tajikistan': 'CIS', 'turkmenistan': 'CIS', 'uzbekistan': 'CIS',
         
         # === NORTH AMERICA ===
-        'united states': 'NA', 'usa': 'NA', 'canada': 'NA',
-        'mexico': 'NA', 'guatemala': 'NA', 'dominican republic': 'NA',
+        'united states': 'North America', 'usa': 'North America', 'canada': 'North America',
+        'mexico': 'North America', 'guatemala': 'North America', 'dominican republic': 'North America',
         
         # === SOUTH AMERICA ===
-        'brazil': 'SA', 'argentina': 'SA', 'chile': 'SA',
-        'colombia': 'SA', 'peru': 'SA', 'uruguay': 'SA',
-        'paraguay': 'SA', 'bolivia': 'SA', 'ecuador': 'SA',
-        'venezuela': 'SA',
+        'brazil': 'South America', 'argentina': 'South America', 'chile': 'South America',
+        'colombia': 'South America', 'peru': 'South America', 'uruguay': 'South America',
+        'paraguay': 'South America', 'bolivia': 'South America', 'ecuador': 'South America',
+        'venezuela': 'South America',
         
         # === ASIA ===
         'china': 'Asia', 'south korea': 'Asia', 'korea': 'Asia',
