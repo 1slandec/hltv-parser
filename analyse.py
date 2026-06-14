@@ -47,17 +47,23 @@ def get_percentage_matrix(df: pd.DataFrame):
 def get_linear_graph(df: pd.DataFrame, limit: str):
     """Строит линейный график изменения доли игроков по регионам во времени."""
     df_plot = df.drop(columns='Total')
+
     plt.style.use('seaborn-v0_8-whitegrid')
-    fig, ax = plt.subplots(figsize=(14, 7))
+
+    _, ax = plt.subplots(figsize=(14, 7))
     df_plot.plot(ax=ax, marker='o', markersize=4, linewidth=2)
-    ax.set_title(f'Доля игроков по регионам в рейтинге HLTV (Top-{limit}) c 2016 по 2026 год', fontsize=16, fontweight='bold')
-    ax.set_xlabel('Год', fontsize=12)
-    ax.set_ylabel('Доля игроков (%)', fontsize=12)
+
+    ax.set_title(f'Доля игроков по регионам в рейтинге HLTV (Top-{limit}) c 2016 по 2026 год', fontsize=16, fontweight='bold', pad=20)
+    ax.set_xlabel('Год', fontsize=12, fontweight='bold')
+    ax.set_ylabel('Доля игроков (%)', fontsize=12, fontweight='bold')
+
     ax.yaxis.set_major_formatter(mticker.PercentFormatter(decimals=1))
+
     ax.set_ylim(0, df_plot.max().max() * 1.15)
     ax.legend(title='Регион', bbox_to_anchor=(1.02, 1), loc='upper left', fontsize=10)
     ax.set_xticks(df_plot.index)
     ax.tick_params(axis='x', rotation=45)
+    
     plt.tight_layout()
     plt.savefig(f'data/player_share_top_{limit}.png', dpi=150, bbox_inches='tight')
     plt.show()
@@ -90,7 +96,7 @@ def get_pearson(df_total: pd.DataFrame, df_weighted: pd.DataFrame):
     return df_total.corrwith(df_weighted, axis=1, method='pearson')
 
 def get_divided_matrix(df_10: pd.DataFrame, df_200: pd.DataFrame):
-    """Сравнивает долю игроков в Top-10 относительно Top-200 (коэффициент элитарности)."""
+    """Сравнивает долю игроков в Top-10 относительно Top-200."""
     return round(df_10.div(df_200), 4)
 
 def get_average_by_years(df: pd.DataFrame):
@@ -101,7 +107,7 @@ def get_pie_chart(df: pd.DataFrame, limit: int):
     """Строит круговую диаграмму средней доли регионов за все годы."""
     plt.figure(figsize=(8, 8))
     plt.pie(df, labels=df.index, autopct='%1.1f%%', startangle=140)
-    plt.title(f'Средняя доля игроков по регионам в топ-{limit} (за все годы)')
+    plt.title(f'Средняя доля игроков по регионам в топ-{limit} (за все годы)', fontweight='bold')
     plt.legend(title="Регионы", loc="center left", bbox_to_anchor=(1, 0, 0.5, 1))
     plt.tight_layout()
     plt.savefig(f'data/avg_share_pie_chart_top_{limit}.png', dpi=150, bbox_inches='tight')
@@ -109,11 +115,13 @@ def get_pie_chart(df: pd.DataFrame, limit: int):
 
 def get_bar_chart(df: pd.DataFrame, limit: int):
     """Строит столбчатую диаграмму среднего взвешенного рейтинга регионов."""
-    fig, ax = plt.subplots(figsize=(10, 6))
+    _, ax = plt.subplots(figsize=(10, 6))
     bars = ax.bar(df.index, df.values)
-    ax.set_title(f'Средний взвешенный рейтинг регионов за 2016-2026 год (Top-{limit})')
-    ax.set_xlabel('Регион')
-    ax.set_ylabel('Взвешенный рейтинг')
+
+    ax.set_title(f'Средний взвешенный рейтинг регионов за 2016-2026 год (Top-{limit})', fontweight='bold', pad=20)
+    ax.set_xlabel('Регион', fontweight='bold')
+    ax.set_ylabel('Взвешенный рейтинг', fontweight='bold')
+
     plt.xticks(rotation=45, ha='right')
     plt.bar_label(bars, padding=3, fmt='%.2f')
     plt.tight_layout()
@@ -131,6 +139,7 @@ def get_valid_limit():
 def run_full_analysis(df: pd.DataFrame, regions: list):
     """Запускает полный текстовый анализ (корреляции и средние веса)."""
     limit = get_valid_limit()
+    
     print(f"\n--- Анализ для TOP-{limit} ---")
     df_selected = get_selected_regions_df(df, regions)
     df_limited = get_limited_df(df_selected, limit)
@@ -146,9 +155,7 @@ def run_full_analysis(df: pd.DataFrame, regions: list):
     print("\nСредний взвешенный рейтинг по регионам (за все годы):")
     print(avg_weighted.to_string())
 
-def run_visualizations(df: pd.DataFrame, regions: list):
-    """Генерирует и сохраняет все графики."""
-    limit = get_valid_limit()
+def visualize_and_save(df: pd.DataFrame, regions: list, limit: int):
     print(f"\n--- Построение графиков для TOP-{limit} ---")
     df_selected = get_selected_regions_df(df, regions)
     df_limited = get_limited_df(df_selected, limit)
@@ -164,12 +171,22 @@ def run_visualizations(df: pd.DataFrame, regions: list):
     print("Строится столбчатая диаграмма взвешенного рейтинга...")
     weighted_matrix = get_weighted_matrix(df_limited, limit)
     avg_weighted = get_average_by_years(weighted_matrix)
-    get_bar_chart(avg_weighted, limit)
+    get_bar_chart(avg_weighted, limit)    
 
+def run_visualizations(df: pd.DataFrame, regions: list):
+    """Генерирует и сохраняет все графики."""
+    limit = get_valid_limit()
+    visualize_and_save(df, regions, limit)
+    print("Все графики сохранены в папку 'data/' и отображены.")
+
+def run_visualizations_all_limits(df: pd.DataFrame, regions: list):
+    """Генерирует и сохраняет все графики для всех лимитов."""
+    for limit in [10, 50, 100, 200]:
+        visualize_and_save(df, regions, limit)
     print("Все графики сохранены в папку 'data/' и отображены.")
 
 def run_divided_analysis(df: pd.DataFrame, regions: list):
-    """Запускает сравнение концентрации элиты (Top-10 vs Top-200)."""
+    """Запускает сравнение концентрации лидеров (Top-10 vs Top-200)."""
     print("\n--- Сравнение доли игроков: Top-10 vs Top-200 ---")
     df_selected = get_selected_regions_df(df, regions)
     df_10 = get_total_count_matrix(get_limited_df(df_selected, 10)).drop(columns='Total')
@@ -220,20 +237,24 @@ def main():
     pd.set_option('display.max_columns', None)
     pd.set_option('display.width', 1000)
 
+    # Настройка диаграмм
+    plt.rc('font', size=14)
+
     selected_regions = ['Asia', 'CIS', 'Europe', 'South America', 'North America']
 
     while True:
         print("\n" + "= "*60)
         print("АНАЛИЗ РЕЙТИНГА ИГРОКОВ HLTV (2016–2026)")
         print("= "*60)
-        print("1. Полный текстовый анализ для конкретного лимита")
-        print("2. Построение и сохранение всех графиков")
-        print("3. Сравнение концентрации элиты: Top-10 vs Top-200")
-        print("4. Просмотр матриц данных")
+        print("1. Полный текстовый анализ (для конкретного лимита рейтинга)")
+        print("2. Построение и сохранение всех графиков (для конкретного лимита рейтинга)")
+        print("3. Построение и сохранение всех графиков")
+        print("4. Сравнение концентрации лидеров: Top-10 vs Top-200")
+        print("5. Просмотр матриц данных")
         print("0. Выход из программы")
         print("= "*60)
         
-        choice = input("Выберите действие (0-4): ").strip()
+        choice = input("Выберите действие (0-5): ").strip()
         
         if choice == '0':
             print("Завершение работы программы.")
@@ -243,11 +264,13 @@ def main():
         elif choice == '2':
             run_visualizations(df, selected_regions)
         elif choice == '3':
-            run_divided_analysis(df, selected_regions)
+            run_visualizations_all_limits(df, selected_regions)
         elif choice == '4':
+            run_divided_analysis(df, selected_regions)
+        elif choice == '5':
             view_matrices(df, selected_regions)
         else:
-            print("Неверный ввод. Пожалуйста, выберите число от 0 до 4.")
+            print("Неверный ввод. Пожалуйста, выберите число от 0 до 5.")
             
         input("\nНажмите Enter, чтобы продолжить...")
 
