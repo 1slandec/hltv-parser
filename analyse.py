@@ -8,38 +8,44 @@ import os
 # ==========================================
 
 def read_data(data_file: str) -> pd.DataFrame:
+    """Загружает CSV-файл в DataFrame pandas."""
     try:
         df = pd.read_csv(data_file, encoding='utf-8', sep=',')
-        print(f" Файл {data_file} успешно загружен. Записей: {len(df)}")
+        print(f"Файл {data_file} успешно загружен. Записей: {len(df)}")
         return df
     except Exception as e:
-        print(f'❌ Ошибка чтения файла "{data_file}": {e}')
+        print(f'Ошибка чтения файла "{data_file}": {e}')
         return None
 
 def get_selected_regions_df(df: pd.DataFrame, selected_regions: list[str]):
+    """Фильтрует данные, оставляя только указанные регионы."""
     return df[df['region'].isin(selected_regions)]
 
 def get_limited_df(df: pd.DataFrame, limit: int):
+    """Фильтрует данные, оставляя игроков только в пределах указанного рейтинга (Top-N)."""
     return df[df['ranking_position'] <= limit]
 
 def get_total_count_matrix(df: pd.DataFrame):
+    """Создает таблицу количества игроков по годам и регионам + общий итог."""
     matrix_df = df.pivot_table(
-        index='year',         
-        columns='region',      
-        values='player',    
-        aggfunc='count',       
-        fill_value=0           
+        index='year',
+        columns='region',
+        values='player',
+        aggfunc='count',
+        fill_value=0
     )
     matrix_df = matrix_df.sort_index()
     matrix_df['Total'] = matrix_df.sum(axis=1)
     return matrix_df
 
 def get_percentage_matrix(df: pd.DataFrame):
+    """Преобразует абсолютные числа в проценты от общего количества за год."""
     yearly_totals = df['Total']
     percentage_matrix = round(df.div(yearly_totals, axis=0)*100, 2)
     return percentage_matrix
 
 def get_linear_graph(df: pd.DataFrame, limit: str):
+    """Строит линейный график изменения доли игроков по регионам во времени."""
     df_plot = df.drop(columns='Total')
     plt.style.use('seaborn-v0_8-whitegrid')
     fig, ax = plt.subplots(figsize=(14, 7))
@@ -57,18 +63,21 @@ def get_linear_graph(df: pd.DataFrame, limit: str):
     plt.show()
 
 def get_average_matrix(df: pd.DataFrame):
+    """Считает среднюю позицию в рейтинге для каждого региона по годам."""
     matrix_df = df.pivot_table(
         index='year', columns='region', values='ranking_position', aggfunc='mean', fill_value=0
     ).round(2)
     return matrix_df.sort_index()
 
 def get_median_matrix(df: pd.DataFrame):
+    """Считает медианную позицию в рейтинге для каждого региона по годам."""
     matrix_df = df.pivot_table(
         index='year', columns='region', values='ranking_position', aggfunc='median', fill_value=0
     )
     return matrix_df.sort_index()
 
 def get_weighted_matrix(df: pd.DataFrame, limit: int):
+    """Рассчитывает взвешенный рейтинг (чем выше место, тем больше вес)."""
     df = df.copy()
     df['weighted_ranking'] = limit + 1 - df['ranking_position']
     matrix_df = df.pivot_table(
@@ -77,15 +86,19 @@ def get_weighted_matrix(df: pd.DataFrame, limit: int):
     return matrix_df.sort_index()
 
 def get_pearson(df_total: pd.DataFrame, df_weighted: pd.DataFrame):
+    """Вычисляет корреляцию Пирсона между количеством игроков и их взвешенным рейтингом."""
     return df_total.corrwith(df_weighted, axis=1, method='pearson')
 
 def get_divided_matrix(df_10: pd.DataFrame, df_200: pd.DataFrame):
+    """Сравнивает долю игроков в Top-10 относительно Top-200 (коэффициент элитарности)."""
     return round(df_10.div(df_200), 4)
 
 def get_average_by_years(df: pd.DataFrame):
+    """Усредняет значения матрицы по всем годам для получения общей статистики по регионам."""
     return df.mean(axis=0).round(2)
 
 def get_pie_chart(df: pd.DataFrame, limit: int):
+    """Строит круговую диаграмму средней доли регионов за все годы."""
     plt.figure(figsize=(8, 8))
     plt.pie(df, labels=df.index, autopct='%1.1f%%', startangle=140)
     plt.title(f'Средняя доля игроков по регионам в топ-{limit} (за все годы)')
@@ -95,6 +108,7 @@ def get_pie_chart(df: pd.DataFrame, limit: int):
     plt.show()
 
 def get_bar_chart(df: pd.DataFrame, limit: int):
+    """Строит столбчатую диаграмму среднего взвешенного рейтинга регионов."""
     fig, ax = plt.subplots(figsize=(10, 6))
     bars = ax.bar(df.index, df.values)
     ax.set_title(f'Средний взвешенный рейтинг регионов за 2016-2026 год (Top-{limit})')
@@ -106,81 +120,80 @@ def get_bar_chart(df: pd.DataFrame, limit: int):
     plt.savefig(f'data/avg_weighted_ranking_top_{limit}.png', dpi=150, bbox_inches='tight')
     plt.show()
 
-
-
 def get_valid_limit():
+    """Запрашивает у пользователя корректное значение лимита рейтинга (10, 50, 100 или 200)."""
     while True:
         limit = input("Введите лимит рейтинга (10, 50, 100 или 200): ").strip()
         if limit in ['10', '50', '100', '200']:
             return int(limit)
-        print(" Неверный ввод. Пожалуйста, введите 10, 50, 100 или 200.")
+        print("Неверный ввод. Пожалуйста, введите 10, 50, 100 или 200.")
 
 def run_full_analysis(df: pd.DataFrame, regions: list):
+    """Запускает полный текстовый анализ (корреляции и средние веса)."""
     limit = get_valid_limit()
-    print(f"\n---  Анализ для TOP-{limit} ---")
-    
+    print(f"\n--- Анализ для TOP-{limit} ---")
     df_selected = get_selected_regions_df(df, regions)
     df_limited = get_limited_df(df_selected, limit)
-    
+
     total_count = get_total_count_matrix(df_limited)
     weighted_matrix = get_weighted_matrix(df_limited, limit)
     pearson = get_pearson(total_count.drop(columns='Total'), weighted_matrix)
     avg_weighted = get_average_by_years(weighted_matrix)
-    
-    print("\n Корреляция Пирсона (Количество игроков vs Взвешенный рейтинг):")
+
+    print("\nКорреляция Пирсона (Количество игроков vs Взвешенный рейтинг):")
     print(pearson.to_string())
-    
-    print("\n Средний взвешенный рейтинг по регионам (за все годы):")
+
+    print("\nСредний взвешенный рейтинг по регионам (за все годы):")
     print(avg_weighted.to_string())
 
 def run_visualizations(df: pd.DataFrame, regions: list):
+    """Генерирует и сохраняет все графики."""
     limit = get_valid_limit()
-    print(f"\n---  Построение графиков для TOP-{limit} ---")
-    
+    print(f"\n--- Построение графиков для TOP-{limit} ---")
     df_selected = get_selected_regions_df(df, regions)
     df_limited = get_limited_df(df_selected, limit)
-    
-    print(" Строится линейный график долей...")
+
+    print("Строится линейный график долей...")
     percentage = get_percentage_matrix(get_total_count_matrix(df_limited))
     get_linear_graph(percentage, limit)
-    
-    print(" Строится круговая диаграмма...")
+
+    print("Строится круговая диаграмма...")
     avg_share = get_average_by_years(percentage.drop(columns='Total'))
     get_pie_chart(avg_share, limit)
-    
-    print(" Строится столбчатая диаграмма взвешенного рейтинга...")
+
+    print("Строится столбчатая диаграмма взвешенного рейтинга...")
     weighted_matrix = get_weighted_matrix(df_limited, limit)
     avg_weighted = get_average_by_years(weighted_matrix)
     get_bar_chart(avg_weighted, limit)
-    
-    print(" Все графики сохранены в папку 'data/' и отображены.")
+
+    print("Все графики сохранены в папку 'data/' и отображены.")
 
 def run_divided_analysis(df: pd.DataFrame, regions: list):
+    """Запускает сравнение концентрации элиты (Top-10 vs Top-200)."""
     print("\n--- Сравнение доли игроков: Top-10 vs Top-200 ---")
     df_selected = get_selected_regions_df(df, regions)
-    
     df_10 = get_total_count_matrix(get_limited_df(df_selected, 10)).drop(columns='Total')
     df_200 = get_total_count_matrix(get_limited_df(df_selected, 200)).drop(columns='Total')
-    
+
     divided_matrix = get_divided_matrix(df_10, df_200)
     print("\nКоэффициент (Количество в Top-10 / Количество в Top-200) по годам:")
     print("Значение > 0.05 означает, что регион хорошо представлен в самой элите.")
     print(divided_matrix.to_string())
 
 def view_matrices(df: pd.DataFrame, regions: list):
+    """Позволяет пользователю выбрать и просмотреть конкретную матрицу данных в консоли."""
     limit = get_valid_limit()
     print("\nВыберите тип матрицы для просмотра:")
     print("1. Общее количество игроков")
     print("2. Средняя позиция в рейтинге")
     print("3. Медианная позиция в рейтинге")
     print("4. Взвешенный рейтинг")
-    
     choice = input("Ваш выбор (1-4): ").strip()
-    
+
     df_selected = get_selected_regions_df(df, regions)
     df_limited = get_limited_df(df_selected, limit)
-    
-    print(f"\n---  Матрица для TOP-{limit} ---")
+
+    print(f"\n--- Матрица для TOP-{limit} ---")
     if choice == '1':
         print(get_total_count_matrix(df_limited).to_string())
     elif choice == '2':
@@ -190,15 +203,15 @@ def view_matrices(df: pd.DataFrame, regions: list):
     elif choice == '4':
         print(get_weighted_matrix(df_limited, limit).to_string())
     else:
-        print(" Неверный выбор.")
+        print("Неверный выбор.")
 
 def main():
+    """Главная функция, содержащая меню программы и цикл выполнения."""
     # Создаем папку для сохранения графиков, если её нет
     os.makedirs('data', exist_ok=True)
-    
     data_file = 'data/parsed-data.csv'
     df = read_data(data_file)
-    
+
     if df is None:
         print("Программа завершена из-за ошибки загрузки данных.")
         return
@@ -210,15 +223,15 @@ def main():
     selected_regions = ['Asia', 'CIS', 'Europe', 'South America', 'North America']
 
     while True:
-        print("\n" + "="*60)
+        print("\n" + "= "*60)
         print("АНАЛИЗ РЕЙТИНГА ИГРОКОВ HLTV (2016–2026)")
-        print("="*60)
+        print("= "*60)
         print("1. Полный текстовый анализ для конкретного лимита")
         print("2. Построение и сохранение всех графиков")
         print("3. Сравнение концентрации элиты: Top-10 vs Top-200")
         print("4. Просмотр матриц данных")
         print("0. Выход из программы")
-        print("="*60)
+        print("= "*60)
         
         choice = input("Выберите действие (0-4): ").strip()
         
