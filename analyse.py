@@ -1,4 +1,5 @@
 import pandas as pd
+import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import os
@@ -54,13 +55,13 @@ def get_linear_graph(df: pd.DataFrame, limit: str):
     df_plot.plot(ax=ax, marker='o', markersize=4, linewidth=2)
 
     ax.set_title(f'Доля игроков по регионам в рейтинге HLTV (Top-{limit}) c 2016 по 2026 год', fontsize=16, fontweight='bold', pad=20)
-    ax.set_xlabel('Год', fontsize=12, fontweight='bold')
-    ax.set_ylabel('Доля игроков (%)', fontsize=12, fontweight='bold')
+    ax.set_xlabel('Год', fontsize=14, fontweight='bold')
+    ax.set_ylabel('Доля игроков (%)', fontsize=14, fontweight='bold')
 
     ax.yaxis.set_major_formatter(mticker.PercentFormatter(decimals=1))
 
     ax.set_ylim(0, df_plot.max().max() * 1.15)
-    ax.legend(title='Регион', bbox_to_anchor=(1.02, 1), loc='upper left', fontsize=10)
+    ax.legend(title='Регион', bbox_to_anchor=(1.02, 1), loc='upper left', fontsize=14)
     ax.set_xticks(df_plot.index)
     ax.tick_params(axis='x', rotation=45)
     
@@ -68,17 +69,37 @@ def get_linear_graph(df: pd.DataFrame, limit: str):
     plt.savefig(f'data/player_share_top_{limit}.png', dpi=150, bbox_inches='tight')
     plt.show()
 
+def get_linear_graph_weighted(df_weigted: pd.DataFrame, limit: str):
+    """Строит линейный график изменения доли игроков по регионам во времени."""
+    plt.style.use('seaborn-v0_8-whitegrid')
+
+    _, ax = plt.subplots(figsize=(14, 7))
+    df_weigted.plot(ax=ax, marker='o', markersize=4, linewidth=2)
+
+    ax.set_title(f'Динамика взвешенного рейтинга регионов в рейтинге HLTV (Top-{limit}) c 2016 по 2026 год', fontsize=16, fontweight='bold', pad=20)
+    ax.set_xlabel('Год', fontsize=14, fontweight='bold')
+    ax.set_ylabel('Средний взвешенный рейтинг', fontsize=14, fontweight='bold')
+
+    ax.set_ylim(0, df_weigted.max().max() * 1.15)
+    ax.legend(title='Регион', bbox_to_anchor=(1.02, 1), loc='upper left', fontsize=14)
+    ax.set_xticks(df_weigted.index)
+    ax.tick_params(axis='x', rotation=45)
+    
+    plt.tight_layout()
+    plt.savefig(f'data/linear_weighted_top_{limit}.png', dpi=150, bbox_inches='tight')
+    plt.show()
+
 def get_average_matrix(df: pd.DataFrame):
     """Считает среднюю позицию в рейтинге для каждого региона по годам."""
     matrix_df = df.pivot_table(
-        index='year', columns='region', values='ranking_position', aggfunc='mean', fill_value=0
+        index='year', columns='region', values='ranking_position', aggfunc='mean', fill_value=pd.NA
     ).round(2)
     return matrix_df.sort_index()
 
 def get_median_matrix(df: pd.DataFrame):
     """Считает медианную позицию в рейтинге для каждого региона по годам."""
     matrix_df = df.pivot_table(
-        index='year', columns='region', values='ranking_position', aggfunc='median', fill_value=0
+        index='year', columns='region', values='ranking_position', aggfunc='median', fill_value=pd.NA
     )
     return matrix_df.sort_index()
 
@@ -94,6 +115,10 @@ def get_weighted_matrix(df: pd.DataFrame, limit: int):
 def get_pearson(df_total: pd.DataFrame, df_weighted: pd.DataFrame):
     """Вычисляет корреляцию Пирсона между количеством игроков и их взвешенным рейтингом."""
     return df_total.corrwith(df_weighted, axis=1, method='pearson')
+
+def get_spearman(df_total: pd.DataFrame, df_weighted: pd.DataFrame):
+    """Вычисляет корреляцию Спирмена между количеством игроков и их взвешенным рейтингом."""
+    return df_total.corrwith(df_weighted, axis=1, method='spearman')
 
 def get_divided_matrix(df_10: pd.DataFrame, df_200: pd.DataFrame):
     """Сравнивает долю игроков в Top-10 относительно Top-200."""
@@ -128,6 +153,26 @@ def get_bar_chart(df: pd.DataFrame, limit: int):
     plt.savefig(f'data/avg_weighted_ranking_top_{limit}.png', dpi=150, bbox_inches='tight')
     plt.show()
 
+def get_plot_elite_heatmap(coefficient_matrix):
+    """Строит тепловую карту коэффициента концентрации элиты (Top-10/Top-200)."""
+    plt.figure(figsize=(12, 8))
+    ax = sns.heatmap(coefficient_matrix, annot=True, fmt='.4f', cmap='RdBu_r',
+                     center=0.05, linewidths=0.5,
+                     cbar_kws={'label': 'Коэффициент (Top-10/Top-200)'})
+    
+    ax.set_yticklabels(ax.get_yticklabels(), rotation=0)
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha='right')
+    
+    ax.set_title('Концентрация игроков в элите по регионам (Top-10 / Top-200)', 
+                 fontweight='bold', fontsize=14)
+    ax.set_ylabel('Год', fontweight='bold')
+    ax.set_xlabel('Регион', fontweight='bold')
+    
+    plt.tight_layout()
+    plt.savefig('data/elite_concentration_heatmap.png', dpi=150, bbox_inches='tight')
+    plt.show()
+
+
 def get_valid_limit():
     """Запрашивает у пользователя корректное значение лимита рейтинга (10, 50, 100 или 200)."""
     while True:
@@ -147,10 +192,14 @@ def run_full_analysis(df: pd.DataFrame, regions: list):
     total_count = get_total_count_matrix(df_limited)
     weighted_matrix = get_weighted_matrix(df_limited, limit)
     pearson = get_pearson(total_count.drop(columns='Total'), weighted_matrix)
+    spearman = get_spearman(total_count.drop(columns='Total'), weighted_matrix)
     avg_weighted = get_average_by_years(weighted_matrix)
 
     print("\nКорреляция Пирсона (Количество игроков vs Взвешенный рейтинг):")
     print(pearson.to_string())
+
+    print("\nКорреляция Спирмена (Количество игроков vs Взвешенный рейтинг):")
+    print(spearman.to_string())
 
     print("\nСредний взвешенный рейтинг по регионам (за все годы):")
     print(avg_weighted.to_string())
@@ -197,6 +246,8 @@ def run_divided_analysis(df: pd.DataFrame, regions: list):
     print("Значение > 0.05 означает, что регион хорошо представлен в самой элите.")
     print(divided_matrix.to_string())
 
+    get_plot_elite_heatmap(divided_matrix)
+
 def view_matrices(df: pd.DataFrame, regions: list):
     """Позволяет пользователю выбрать и просмотреть конкретную матрицу данных в консоли."""
     limit = get_valid_limit()
@@ -218,7 +269,9 @@ def view_matrices(df: pd.DataFrame, regions: list):
     elif choice == '3':
         print(get_median_matrix(df_limited).to_string())
     elif choice == '4':
-        print(get_weighted_matrix(df_limited, limit).to_string())
+        weighted_matrix = get_weighted_matrix(df_limited, limit) 
+        print(weighted_matrix.to_string())
+        get_linear_graph_weighted(weighted_matrix, limit) # строит диагрмму динамики средневзвешенного рейтинга
     else:
         print("Неверный выбор.")
 
@@ -250,7 +303,7 @@ def main():
         print("2. Построение и сохранение всех графиков (для конкретного лимита рейтинга)")
         print("3. Построение и сохранение всех графиков")
         print("4. Сравнение концентрации лидеров: Top-10 vs Top-200")
-        print("5. Просмотр матриц данных")
+        print("5. Вычисление метрик, просмотр матриц")
         print("0. Выход из программы")
         print("= "*60)
         
